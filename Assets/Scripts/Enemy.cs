@@ -1,22 +1,30 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Health))]
 public class Enemy : MonoBehaviour
 { 
-    private Health health;
+    private Health _health;
 
     private void Awake()
     {
-        health = GetComponent<Health>();
+        _health = GetComponent<Health>();
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (collision.gameObject.tag == "Attack")
+        if (GotHitByAttack(collision))
         {
-            health.TakeDamage(10);
+            DamageSelf();
         }
+    }
+
+    private bool GotHitByAttack(Collider2D collision)
+    {
+        return collision.gameObject.CompareTag("Attack");
+    }
+
+    private void DamageSelf()
+    {
+        _health.TakeDamage(10);
     }
 }

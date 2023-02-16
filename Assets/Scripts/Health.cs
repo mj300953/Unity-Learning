@@ -1,16 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-
-public enum CharacterType
-{
-    Enemy,
-    Player
-}
 
 public class Health : MonoBehaviour
 {
-    [SerializeField] private CharacterType type;
     [SerializeField] private int maxHealth;
     
     private int _currentHealth;
@@ -22,16 +13,21 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
-        _currentHealth -= amount;
+        SubtractHealth(amount);
 
-        if(_currentHealth <= 0 && type == CharacterType.Enemy)
+        if (RunOutOfHealth())
         {
             Destroy(gameObject);
         }
+    }
 
-        if (_currentHealth <= 0 && type == CharacterType.Player)
-        {
-            // Game Over
-        }
+    private void SubtractHealth(int amount)
+    {
+        _currentHealth -= amount;
+    }
+
+    private bool RunOutOfHealth()
+    {
+        return _currentHealth <= 0;
     }
 }
