@@ -1,11 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
-public class Combat : MonoBehaviour
+public class AttackController : MonoBehaviour
 {
     public Animator _animator;
+    
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
 
     private void Update()
     {
@@ -17,8 +17,6 @@ public class Combat : MonoBehaviour
 
     private void Attack()
     {
-        _animator.SetTrigger("Attack");
+        _animator.SetTrigger(AttackHash);
     }
-    
-
 }
