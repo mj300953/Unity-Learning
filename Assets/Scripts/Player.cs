@@ -2,11 +2,12 @@ using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
-public class Player : MonoBehaviour
+public class Player : Damageable
 {
     [SerializeField] private float jumpingPower;
     [SerializeField] private float moveSpeed;
     [SerializeField] private int maxJump;
+    [SerializeField] private float attackDuration;
 
     private Transform _transform;
     private Rigidbody2D _rigidbody;
@@ -14,13 +15,16 @@ public class Player : MonoBehaviour
 
     private int _jumpAmount;
     private float _horizontalInput;
+    private float _attackFinishTime;
     private bool _gotJumpInput;
     private bool _isGrounded;
+    private bool _gotAttackInput;
     private bool _facingRight = true;
     
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int SpeedInAirHash = Animator.StringToHash("SpeedInAir");
     private static readonly int InAirHash = Animator.StringToHash("InAir");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
 
     private void Awake()
     {
@@ -39,6 +43,11 @@ public class Player : MonoBehaviour
         if (ShouldJump())
         {
             Jump();
+        }
+
+        if (ShouldAttack())
+        {
+            Attack();
         }
     }
 
@@ -62,6 +71,7 @@ public class Player : MonoBehaviour
     {
         _horizontalInput = Input.GetAxis("Horizontal");
         _gotJumpInput = Input.GetKeyDown(KeyCode.W);
+        _gotAttackInput = Input.GetKeyDown(KeyCode.Space);
     }
 
     private void Move()
@@ -93,7 +103,7 @@ public class Player : MonoBehaviour
 
     private bool ShouldJump()
     {
-        return _gotJumpInput && (_isGrounded || _jumpAmount > 0);
+        return _gotJumpInput && (_isGrounded || _jumpAmount > 0) && Time.time >= _attackFinishTime;
     }
 
     private void Jump()
@@ -102,6 +112,17 @@ public class Player : MonoBehaviour
         _animator.SetBool(InAirHash, true);
         _isGrounded = false;
         _jumpAmount--;
+    }
+
+    private bool ShouldAttack()
+    {
+        return _gotAttackInput && _isGrounded && Time.time >= _attackFinishTime;
+    }
+
+    private void Attack()
+    {
+        _animator.SetTrigger(AttackHash);
+        _attackFinishTime = Time.time + attackDuration;
     }
 
     private static bool HitGround(Collision2D collision)
