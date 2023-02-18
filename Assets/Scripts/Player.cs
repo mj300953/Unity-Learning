@@ -1,40 +1,26 @@
 using UnityEngine;
-
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
-public class Player : Damageable
+public class Player : MonoBehaviour
 {
-    [SerializeField] private float attackDuration;
     [SerializeField] private float jumpingPower;
     [SerializeField] private float moveSpeed;
     [SerializeField] private int maxJump;
 
-    private Transform _transform;
     private Rigidbody2D _rigidbody;
     private Animator _animator;
 
     private int _jumpAmount;
-    [SerializeField] private int _attackCounter;
     private float _horizontalInput;
-    private float _attackFinishTime;
-    private bool _isAttacking;
-
-
-    private bool _gotAttackInput;
-    private bool _gotJumpInput;
+    private bool _shouldJump;
     private bool _isGrounded;
-    private bool _facingRight = true;
-
-    private static readonly int SpeedHash = Animator.StringToHash("Speed");
-    private static readonly int SpeedInAirHash = Animator.StringToHash("SpeedInAir");
-    private static readonly int InAirHash = Animator.StringToHash("InAir");
-    private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private bool _facingRight;
 
     private void Awake()
     {
         _rigidbody = GetComponent<Rigidbody2D>();
         _animator = GetComponent<Animator>();
-        _transform = transform;
+        _facingRight = true;
     }
 
     private void Update()
@@ -42,22 +28,15 @@ public class Player : Damageable
         CollectInput();
         Move();
         UpdateAnimations();
-        HandleFacing();
+
+        if (MovingRight() && _facingRight) FlipCharacter();
+        if (MovingLeft() && !_facingRight) FlipCharacter();
+
 
         if (ShouldJump())
         {
+            UpdateJumpAnimations();
             Jump();
-        }
-
-        if (ShouldAttack())
-        {
-            Attack();
-            _attackCounter++;
-        }
-
-        if (_gotAttackInput && _isGrounded && Time.time <= _attackFinishTime)
-        {
-            _attackCounter = 0;
         }
     }
 
@@ -65,23 +44,15 @@ public class Player : Damageable
     {
         if (HitGround(collision))
         {
+            ReUpdateJumpAnimations();
             EnableJump();
-        }
-    }
-
-    private void HandleFacing()
-    {
-        if (IsFacingWrongDirection())
-        { 
-            FaceRirghtDirection(); 
         }
     }
 
     private void CollectInput()
     {
         _horizontalInput = Input.GetAxis("Horizontal");
-        _gotJumpInput = Input.GetKeyDown(KeyCode.W);
-        _gotAttackInput = Input.GetKeyDown(KeyCode.Space);
+        _shouldJump = Input.GetKeyDown(KeyCode.W);
     }
 
     private void Move()
@@ -92,49 +63,40 @@ public class Player : Damageable
 
     private void UpdateAnimations()
     {
-        _animator.SetFloat(SpeedHash, Mathf.Abs(_rigidbody.velocity.x));
-        _animator.SetFloat(SpeedInAirHash, _rigidbody.velocity.y);
+        _animator.SetFloat("Speed", Mathf.Abs(_rigidbody.velocity.x));
+        _animator.SetFloat("SpeedInAir", _rigidbody.velocity.y);
     }
-
-    private bool IsFacingWrongDirection()
+    private bool MovingRight()
     {
-        switch (_facingRight)
-        {
-            case true:
-                return _rigidbody.velocity.x < 0;   
-            case false:
-                return _rigidbody.velocity.x > 0;
-        }
+        return _rigidbody.velocity.x < 0;
     }
 
-    private void FaceRirghtDirection()
+    private bool MovingLeft()
+    {
+        return _rigidbody.velocity.x > 0;
+    }
+
+    private void FlipCharacter()
     {
         _facingRight = !_facingRight;
-        _transform.Rotate(Vector2.up * 180);
+        transform.Rotate(Vector2.up * 180);
     }
 
     private bool ShouldJump()
     {
-        return _gotJumpInput && (_isGrounded || _jumpAmount > 0) && Time.time >= _attackFinishTime;
+        return _shouldJump && (_isGrounded || _jumpAmount > 0);
+    }
+
+    private void UpdateJumpAnimations()
+    {
+        _animator.SetBool("InAir", true);
     }
 
     private void Jump()
     {
-        _animator.SetBool(InAirHash, true);
         _rigidbody.AddForce(jumpingPower * Vector2.up);
         _isGrounded = false;
         _jumpAmount--;
-    }
-
-    private bool ShouldAttack()
-    {
-        return _gotAttackInput && _isGrounded && Time.time >= _attackFinishTime;
-    }
-
-    private void Attack()
-    {
-        _animator.SetTrigger(AttackHash);
-        _attackFinishTime = Time.time + attackDuration;
     }
 
     private static bool HitGround(Collision2D collision)
@@ -142,11 +104,15 @@ public class Player : Damageable
         return collision.gameObject.CompareTag("Ground");
     }
 
+    private void ReUpdateJumpAnimations()
+    {
+        _animator.SetBool("InAir", false);
+    }
+
     private void EnableJump()
     {
-        _animator.SetBool(InAirHash, false);
         _isGrounded = true;
         _jumpAmount = maxJump;
     }
+
 }
- 
