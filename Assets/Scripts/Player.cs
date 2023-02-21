@@ -14,6 +14,7 @@ public class Player : Damageable
     private Animator _animator;
 
     private int _jumpAmount;
+    private int _attackCombo;
     private float _horizontalInput;
     private float _attackFinishTime;
     private bool _gotJumpInput;
@@ -24,7 +25,9 @@ public class Player : Damageable
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int SpeedInAirHash = Animator.StringToHash("SpeedInAir");
     private static readonly int InAirHash = Animator.StringToHash("InAir");
-    private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int AttackComboCounter = Animator.StringToHash("ComboCounter");
+
+    private const int MaxAttackCombo = 3;
 
     private void Awake()
     {
@@ -38,19 +41,11 @@ public class Player : Damageable
         CollectInput();
         Move();
         UpdateAnimations();
-        HandleFacing();
-
-        if (ShouldJump())
-        {
-            Jump();
-        }
-
-        if (ShouldAttack())
-        {
-            Attack();
-        }
+        HandleFacing(); 
+        HandleAttack();
+        HandleJump();
     }
-
+    
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (HitGround(collision))
@@ -58,12 +53,30 @@ public class Player : Damageable
             EnableJump();
         }
     }
-
+    
     private void HandleFacing()
     {
         if (IsFacingWrongDirection())
         {
             FaceRightDirection();
+        }
+    }
+
+    private void HandleAttack()
+    {
+        if (ShouldAttack())
+        {
+            Attack();
+        }
+
+        TryFinishingAttack();
+    }
+    
+    private void HandleJump()
+    {
+        if (ShouldJump())
+        {
+            Jump();
         }
     }
 
@@ -84,6 +97,7 @@ public class Player : Damageable
     {
         _animator.SetFloat(SpeedHash, Mathf.Abs(_rigidbody.velocity.x));
         _animator.SetFloat(SpeedInAirHash, _rigidbody.velocity.y);
+        _animator.SetInteger(AttackComboCounter, _attackCombo);
     }
 
     private bool IsFacingWrongDirection()
@@ -101,6 +115,33 @@ public class Player : Damageable
         _transform.Rotate(Vector2.up * 180);
     }
 
+    private bool ShouldAttack()
+    {
+        return _gotAttackInput && _attackCombo < MaxAttackCombo && _isGrounded;
+    }
+    
+    private void Attack()
+    {
+        if (_attackCombo == 0)
+        {
+            _attackFinishTime = Time.time + attackDuration;
+        }
+        else
+        {
+            _attackFinishTime += attackDuration;
+        }
+
+        _attackCombo++;
+    }
+    
+    private void TryFinishingAttack()
+    {
+        if (Time.time >= _attackFinishTime)
+        {
+            _attackCombo = 0;
+        }
+    }
+    
     private bool ShouldJump()
     {
         return _gotJumpInput && (_isGrounded || _jumpAmount > 0) && Time.time >= _attackFinishTime;
@@ -112,17 +153,6 @@ public class Player : Damageable
         _animator.SetBool(InAirHash, true);
         _isGrounded = false;
         _jumpAmount--;
-    }
-
-    private bool ShouldAttack()
-    {
-        return _gotAttackInput && _isGrounded && Time.time >= _attackFinishTime;
-    }
-
-    private void Attack()
-    {
-        _animator.SetTrigger(AttackHash);
-        _attackFinishTime = Time.time + attackDuration;
     }
 
     private static bool HitGround(Collision2D collision)
